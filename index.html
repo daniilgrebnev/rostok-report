@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>РостОк</title>
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <meta name="theme-color" content="#26332D">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --brand: #3E9B63; --primary: #26332D; --growth: #2B7A4B; --primary-soft: #E9EEE9; --primary-pale: #D3DDD5;
+      --primary-muted: #A8B8AD; --decline: #B8620B; --decline-soft: #FBEFE2; --decline-text: #8F4C08;
+      --ink: #1B1F1D; --ink-muted: #5C635E; --line: #E4E1D8; --background: #F5F3EC; --surface: #FFFFFF;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--background); color: var(--ink);
+      font: 400 16px/1.5 Onest, system-ui, -apple-system, sans-serif;
+    }
+    main { max-width: 480px; margin: 0 auto; padding: 20px 16px 40px; }
+    .card { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 16px; margin-top: 12px; }
+    h2 { font-size: 20px; line-height: 1.3; margin: 0 0 8px; }
+    .muted { color: var(--ink-muted); font-size: 13px; }
+    .r-header { display: flex; align-items: center; gap: 12px; }
+    .r-logo {
+      object-fit: cover;
+      width: 48px; height: 48px; border-radius: 14px; background: var(--primary-soft); color: var(--primary);
+      display: grid; place-items: center; font-weight: 700; font-size: 18px; flex: none;
+    }
+    .r-header .club { font-weight: 600; font-size: 17px; }
+    .r-title { margin-top: 24px; }
+    .r-title .period { color: var(--primary); font-weight: 600; font-size: 14px; }
+    .r-title h1 { font-size: 30px; line-height: 1.2; font-weight: 700; margin: 4px 0 2px; letter-spacing: -0.3px; }
+    .r-summary { background: var(--primary-soft); border-radius: 16px; padding: 14px 16px; margin-top: 16px; font-weight: 500; }
+    .r-attendance .big { font-size: 28px; font-weight: 700; }
+    .bar { height: 10px; background: var(--line); border-radius: 6px; overflow: hidden; margin-top: 8px; }
+    .bar > span { display: block; height: 100%; background: var(--brand); border-radius: 6px; }
+    .r-test { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+    .r-test:first-of-type { border-top: 0; }
+    .r-test .name { font-weight: 600; }
+    .r-test .delta { font-size: 14px; font-weight: 600; }
+    .r-test svg { flex: none; }
+    .up { color: var(--growth); } .flat { color: var(--ink-muted); } .down { color: var(--decline); }
+    .r-rating .row { margin: 10px 0; }
+    .r-rating .row .top { display: flex; justify-content: space-between; font-size: 15px; }
+    .r-rating .bars { display: grid; gap: 3px; margin-top: 6px; }
+    .r-rating .bars span { display: block; height: 8px; border-radius: 4px; }
+    .legend { display: flex; gap: 16px; font-size: 13px; color: var(--ink-muted); }
+    .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+    .r-goal { background: var(--background); border-radius: 12px; padding: 12px; margin-top: 12px; }
+    .r-notes .note { padding: 8px 0; border-top: 1px solid var(--line); }
+    .r-notes .note:first-of-type { border-top: 0; }
+    .r-footer { text-align: center; margin-top: 32px; color: var(--ink-muted); font-size: 13px; }
+    .r-footer b { color: var(--growth); }
+    .state { text-align: center; padding: 80px 16px; }
+  </style>
+</head>
+<body>
+<main id="app"></main>
+<script src="config.js"></script>
+<script>
+(function () {
+  'use strict';
+  var app = document.getElementById('app');
+  var cfg = window.ROSTOK_CONFIG || {};
+
+  // Тексты страницы на трёх языках. Язык задаёт тренер при создании отчёта.
+  var T = {
+    ru: {
+      loading: 'Загружаем отчёт…',
+      linkIncomplete: ['Ссылка неполная', 'Попросите тренера прислать ссылку ещё раз.'],
+      notConfigured: ['Страница не настроена', 'Нет config.js.'],
+      notFound: ['Отчёт не найден', 'Проверьте ссылку или попросите тренера прислать её ещё раз.'],
+      revoked: ['Отчёт больше недоступен', 'Тренер закрыл эту ссылку. Если нужен отчёт, напишите тренеру.'],
+      loadError: ['Не удалось загрузить отчёт', 'Проверьте интернет и обновите страницу.'],
+      title: 'Отчёт тренера', school: 'Футбольная школа', coach: 'Тренер: ',
+      attendance: 'Посещаемость', sessions: ['тренировки', 'тренировок', 'тренировок', 'тренировок'], of: ' из ',
+      tests: 'Тесты', noChange: 'без изменений', faster: ', быстрее', slower: ', медленнее', now: 'сейчас ',
+      rating: 'Оценка тренера', before: 'было', after: 'стало', outOf5: ' из 5',
+      criteria: { technique: 'Техника', game_understanding: 'Понимание игры', physical: 'Физика', character: 'Характер и дисциплина' },
+      brand: 'РостОк', comment: 'Комментарий тренера', goal: 'Цель на следующий период', notes: 'Заметки', madeIn: 'Сделано в ',
+      summary: function (name, months, parts) { return name + ' за ' + months + ': ' + parts.join(', ') + '.'; },
+      months: { one: 'месяц', few: 'месяца', many: 'месяцев', other: 'месяца' },
+      better: function (a, b) { return 'лучше в ' + a + ' из ' + b + ' ' + (b === 1 ? 'теста' : 'тестов'); },
+      attendancePart: function (pct) { return 'посещаемость ' + pct + '%'; },
+      testNames: { juggling: 'Набивание мяча', slalom: 'Слалом с мячом', passing: 'Точность передач', sprint: 'Бег 20 м' },
+      units: { juggling: 'раз', slalom: 'сек', passing: 'из 10', sprint: 'сек' }
+    },
+    sr: {
+      loading: 'Učitavamo izveštaj…',
+      linkIncomplete: ['Link nije potpun', 'Zamoli trenera da ponovo pošalje link.'],
+      notConfigured: ['Stranica nije podešena', 'Nedostaje config.js.'],
+      notFound: ['Izveštaj nije pronađen', 'Proveri link ili zamoli trenera da ga ponovo pošalje.'],
+      revoked: ['Izveštaj više nije dostupan', 'Trener je zatvorio ovaj link. Ako ti treba izveštaj, javi se treneru.'],
+      loadError: ['Izveštaj nije učitan', 'Proveri internet i osveži stranicu.'],
+      title: 'Izveštaj trenera', school: 'Fudbalska škola', coach: 'Trener: ',
+      attendance: 'Prisustvo', sessions: ['trening', 'treninga', 'treninga', 'treninga'], of: ' od ',
+      tests: 'Testovi', noChange: 'bez promene', faster: ', brže', slower: ', sporije', now: 'sada ',
+      rating: 'Ocena trenera', before: 'pre', after: 'sada', outOf5: ' od 5',
+      criteria: { technique: 'Tehnika', game_understanding: 'Razumevanje igre', physical: 'Fizička spremnost', character: 'Karakter i disciplina' },
+      brand: 'RostOk', comment: 'Komentar trenera', goal: 'Cilj za sledeći period', notes: 'Beleške', madeIn: 'Napravljeno u aplikaciji ',
+      summary: function (name, months, parts) { return name + ' za ' + months + ': ' + parts.join(', ') + '.'; },
+      months: { one: 'mesec', few: 'meseca', many: 'meseci', other: 'meseci' },
+      better: function (a, b) {
+        var m10 = b % 10, m100 = b % 100;
+        var gen = (m10 >= 1 && m10 <= 4 && (m100 < 11 || m100 > 14)) ? 'testa' : 'testova';
+        return 'bolje u ' + a + ' od ' + b + ' ' + gen;
+      },
+      attendancePart: function (pct) { return 'prisustvo ' + pct + '%'; },
+      testNames: { juggling: 'Žongliranje loptom', slalom: 'Slalom sa loptom', passing: 'Preciznost dodavanja', sprint: 'Sprint 20 m' },
+      units: { juggling: 'puta', slalom: 's', passing: 'od 10', sprint: 's' }
+    },
+    en: {
+      loading: 'Loading the report…',
+      linkIncomplete: ['The link is incomplete', 'Ask the coach to send the link again.'],
+      notConfigured: ['The page is not set up', 'config.js is missing.'],
+      notFound: ['Report not found', 'Check the link or ask the coach to send it again.'],
+      revoked: ['This report is no longer available', 'The coach has closed this link. If you need the report, contact the coach.'],
+      loadError: ["Couldn't load the report", 'Check your connection and refresh the page.'],
+      title: "Coach's report", school: 'Football school', coach: 'Coach: ',
+      attendance: 'Attendance', sessions: ['session', 'sessions', 'sessions', 'sessions'], of: ' of ',
+      tests: 'Tests', noChange: 'no change', faster: ', faster', slower: ', slower', now: 'now ',
+      rating: 'Coach rating', before: 'before', after: 'now', outOf5: ' of 5',
+      criteria: { technique: 'Technique', game_understanding: 'Game understanding', physical: 'Physical', character: 'Attitude and discipline' },
+      brand: 'RostOk', comment: "Coach's comment", goal: 'Goal for the next period', notes: 'Notes', madeIn: 'Made with ',
+      summary: function (name, months, parts) { return name + ', last ' + months + ': ' + parts.join(', ') + '.'; },
+      months: { one: 'month', few: 'months', many: 'months', other: 'months' },
+      better: function (a, b) { return 'improved in ' + a + ' of ' + b + ' ' + (b === 1 ? 'test' : 'tests'); },
+      attendancePart: function (pct) { return 'attendance ' + pct + '%'; },
+      testNames: { juggling: 'Ball juggling', slalom: 'Dribbling slalom', passing: 'Passing accuracy', sprint: '20 m sprint' },
+      units: { juggling: 'reps', slalom: 'sec', passing: 'of 10', sprint: 'sec' }
+    }
+  };
+  var locales = { ru: 'ru', sr: 'sr-Latn', en: 'en' };
+  var lang = 'ru';
+  var t = T.ru;
+
+  function setLang(l) {
+    lang = T[l] ? l : 'ru';
+    t = T[lang];
+    document.documentElement.lang = locales[lang];
+  }
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function num(v) {
+    return new Intl.NumberFormat(locales[lang], { maximumFractionDigits: 1 }).format(Number(v));
+  }
+  function date(s) {
+    var p = String(s).split('-');
+    var d = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+    return new Intl.DateTimeFormat(locales[lang], { day: 'numeric', month: 'long', year: 'numeric' }).format(d);
+  }
+  function plural(n, forms) {
+    var cat = new Intl.PluralRules(locales[lang]).select(n);
+    var i = { one: 0, few: 1, many: 2, other: 3 }[cat];
+    return Array.isArray(forms) ? forms[i == null ? 3 : i] : (forms[cat] || forms.other);
+  }
+  function monthsBetween(from, to) {
+    var a = from.split('-'), b = to.split('-');
+    return Math.max(1, Math.round((Number(b[0]) - Number(a[0])) * 12 + (Number(b[1]) - Number(a[1])) + (Number(b[2]) - Number(a[2])) / 30));
+  }
+
+  function page(inner) {
+    app.innerHTML = inner + '<div class="r-footer">' + esc(t.madeIn) + '<b>' + esc(t.brand) + '</b></div>';
+  }
+  function state(pair) {
+    page('<div class="state"><h2>' + esc(pair[0]) + '</h2><p class="muted">' + esc(pair[1]) + '</p></div>');
+  }
+
+  // Мини-график 96 × 36 без осей.
+  function spark(points, trend) {
+    var w = 96, h = 36, pad = 4;
+    var vals = points.map(function (p) { return Number(p.value); });
+    var min = Math.min.apply(null, vals), max = Math.max.apply(null, vals);
+    var span = max - min || 1;
+    var step = points.length > 1 ? (w - 2 * pad) / (points.length - 1) : 0;
+    var xy = vals.map(function (v, i) {
+      var x = points.length > 1 ? pad + i * step : w / 2;
+      var y = h - pad - (v - min) / span * (h - 2 * pad);
+      return [x.toFixed(1), y.toFixed(1)];
+    });
+    var color = trend === 'up' ? '#3E9B63' : trend === 'down' ? '#B8620B' : '#A8B8AD';
+    var line = xy.map(function (p) { return p.join(','); }).join(' ');
+    var last = xy[xy.length - 1];
+    return '<svg width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" aria-hidden="true">' +
+      '<polyline fill="none" stroke="' + color + '" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" points="' + line + '"/>' +
+      '<circle cx="' + last[0] + '" cy="' + last[1] + '" r="3.5" fill="' + color + '"/></svg>';
+  }
+
+  function testName(test) { return (test.key && t.testNames[test.key]) || test.name; }
+  function testUnit(test) { return (test.key && t.units[test.key]) || test.unit; }
+
+  function testDelta(test) {
+    if (test.points.length < 2 || Number(test.change) === 0) return t.noChange;
+    var ch = Number(test.change), unit = testUnit(test);
+    var s = (ch > 0 ? '+' : '−') + num(Math.abs(ch)) + (unit ? ' ' + unit : '');
+    if (!test.higher_is_better) s += ch < 0 ? t.faster : t.slower;
+    return s;
+  }
+
+  function render(r) {
+    var p = r.player, name = p.first_name;
+    var full = (p.first_name + ' ' + (p.last_name || '')).trim();
+    // Шапка из профиля тренера. Пока клуб не указан — только имя тренера.
+    var club = (r.coach.club || '').trim();
+    var initials = club.split(/\s+/).filter(Boolean).slice(0, 2).map(function (w) { return w[0]; }).join('').toUpperCase();
+    var m = monthsBetween(r.period.from, r.period.to);
+    var att = r.attendance || {};
+    var html = '';
+
+    if (club) {
+      var logo = r.coach.logo && /^https:\/\//.test(r.coach.logo)
+        ? '<img class="r-logo" src="' + esc(r.coach.logo) + '" alt="">'
+        : '<div class="r-logo">' + esc(initials) + '</div>';
+      html += '<div class="r-header">' + logo + '<div>' +
+        '<div class="club">' + esc(club) + '</div>' +
+        (r.coach.name ? '<div class="muted">' + esc(t.coach + r.coach.name) + '</div>' : '') + '</div></div>';
+    } else if (r.coach.name) {
+      html += '<div class="r-header"><div class="club">' + esc(t.coach + r.coach.name) + '</div></div>';
+    }
+
+    html += '<div class="r-title"><div class="period">' + esc(date(r.period.from)) + ' — ' + esc(date(r.period.to)) + '</div>' +
+      '<h1>' + esc(full) + '</h1><div class="muted">' + esc(r.group) + '</div></div>';
+
+    // Главное одной фразой. Сравниваем только с самим ребёнком.
+    var parts = [];
+    if (r.tests_compared > 0) parts.push(t.better(r.tests_improved, r.tests_compared));
+    if (att.total > 0) parts.push(t.attendancePart(att.pct));
+    if (parts.length) {
+      html += '<div class="r-summary">' + esc(t.summary(name, m + ' ' + plural(m, t.months), parts)) + '</div>';
+    }
+
+    if (att.total > 0) {
+      html += '<section class="card r-attendance"><h2>' + esc(t.attendance) + '</h2>' +
+        '<div><span class="big">' + att.pct + '%</span> <span class="muted">' + att.present + esc(t.of) + att.total + ' ' +
+        esc(plural(att.total, t.sessions)) + '</span></div>' +
+        '<div class="bar"><span style="width:' + Math.min(100, att.pct) + '%"></span></div></section>';
+    }
+
+    if (r.tests && r.tests.length) {
+      html += '<section class="card"><h2>' + esc(t.tests) + '</h2>';
+      r.tests.forEach(function (test) {
+        var unit = testUnit(test);
+        html += '<div class="r-test"><div style="flex:1"><div class="name">' + esc(testName(test)) + '</div>' +
+          '<div class="delta ' + esc(test.trend) + '">' + esc(testDelta(test)) + '</div>' +
+          '<div class="muted">' + esc(t.now + num(test.end) + (unit ? ' ' + unit : '')) + '</div></div>' +
+          spark(test.points, test.trend) + '</div>';
+      });
+      html += '</section>';
+    }
+
+    if (r.ratings && r.ratings.after) {
+      var a = r.ratings.after, b = r.ratings.before;
+      html += '<section class="card r-rating"><h2>' + esc(t.rating) + '</h2>' +
+        '<div class="legend">' + (b ? '<span><i style="background:var(--primary-pale)"></i>' + esc(t.before) + '</span>' : '') +
+        '<span><i style="background:var(--brand)"></i>' + esc(t.after) + '</span></div>';
+      ['technique', 'game_understanding', 'physical', 'character'].forEach(function (key) {
+        var after = a[key], before = b ? b[key] : null;
+        var trend = before == null || before === after ? 'flat' : after > before ? 'up' : 'down';
+        var color = trend === 'down' ? 'var(--decline)' : trend === 'flat' ? 'var(--primary-muted)' : 'var(--brand)';
+        html += '<div class="row"><div class="top"><span>' + esc(t.criteria[key]) + '</span><b class="' + trend + '">' +
+          (before != null ? before + ' → ' : '') + after + esc(t.outOf5) + '</b></div><div class="bars">' +
+          (before != null ? '<span style="width:' + before * 20 + '%;background:var(--primary-pale)"></span>' : '') +
+          '<span style="width:' + after * 20 + '%;background:' + color + '"></span></div></div>';
+      });
+      html += '</section>';
+    }
+
+    if (r.comment || r.goal) {
+      html += '<section class="card"><h2>' + esc(t.comment) + '</h2>' +
+        (r.comment ? '<div class="r-comment">' + esc(r.comment) + '</div>' : '') +
+        (r.goal ? '<div class="r-goal"><div class="muted">' + esc(t.goal) + '</div>' + esc(r.goal) + '</div>' : '') +
+        '</section>';
+    }
+
+    if (r.notes && r.notes.length) {
+      html += '<section class="card r-notes"><h2>' + esc(t.notes) + '</h2>';
+      r.notes.forEach(function (n) {
+        html += '<div class="note"><div class="muted">' + esc(date(n.date)) + '</div>' + esc(n.text) + '</div>';
+      });
+      html += '</section>';
+    }
+
+    document.title = full + ' · ' + t.title;
+    page(html);
+  }
+
+  // Пока отчёт не загружен, язык берём из браузера.
+  var nav = (navigator.language || 'ru').slice(0, 2);
+  setLang(nav === 'sr' || nav === 'hr' || nav === 'bs' ? 'sr' : nav === 'en' ? 'en' : 'ru');
+  app.innerHTML = '<p class="state muted">' + esc(t.loading) + '</p>';
+
+  var params = new URLSearchParams(location.search);
+
+  // Пример отчёта на вымышленном игроке: ?demo=1&lang=ru|sr|en.
+  if (params.get('demo')) {
+    setLang(params.get('lang') || lang);
+    var demoNames = { ru: ['Миша', 'Петров', 'Алексей Ковалёв'], sr: ['Luka', 'Petrović', 'Marko Marković'], en: ['Jack', 'Smith', 'John Miller'] }[lang];
+    var demoText = {
+      ru: ['Миша стал увереннее с мячом и чаще играет в пас.', 'Уверенно работать левой ногой', 'Начал играть левой'],
+      sr: ['Luka je sigurniji sa loptom i češće igra u pas.', 'Sigurnije igranje levom nogom', 'Počeo da igra levom nogom'],
+      en: ['Jack is more confident on the ball and passes more often.', 'Use the left foot with confidence', 'Started using his left foot']
+    }[lang];
+    render({
+      player: { first_name: demoNames[0], last_name: demoNames[1] },
+      group: 'U-10',
+      coach: { name: demoNames[2], club: 'FC Rostok' },
+      period: { from: '2026-07-01', to: '2026-09-30' },
+      attendance: { total: 36, present: 33, pct: 92 },
+      tests_improved: 3, tests_compared: 4,
+      tests: [
+        { key: 'juggling', name: '', unit: '', higher_is_better: true, points: [{ value: 18 }, { value: 24 }, { value: 31 }], end: 31, change: 13, trend: 'up' },
+        { key: 'slalom', name: '', unit: '', higher_is_better: false, points: [{ value: 14.2 }, { value: 13.4 }, { value: 12.8 }], end: 12.8, change: -1.4, trend: 'up' },
+        { key: 'passing', name: '', unit: '', higher_is_better: true, points: [{ value: 5 }, { value: 6 }, { value: 7 }], end: 7, change: 2, trend: 'up' },
+        { key: 'sprint', name: '', unit: '', higher_is_better: false, points: [{ value: 4.4 }, { value: 4.3 }, { value: 4.5 }], end: 4.5, change: 0.1, trend: 'down' }
+      ],
+      ratings: {
+        before: { technique: 3, game_understanding: 3, physical: 3, character: 4 },
+        after: { technique: 4, game_understanding: 4, physical: 3, character: 4 }
+      },
+      comment: demoText[0], goal: demoText[1],
+      notes: [{ date: '2026-09-12', text: demoText[2] }]
+    });
+    return;
+  }
+
+  var token = params.get('t');
+  if (!token) return state(t.linkIncomplete);
+  if (!cfg.supabaseUrl || !cfg.publishableKey) return state(t.notConfigured);
+
+  fetch(cfg.supabaseUrl + '/rest/v1/rpc/get_public_report', {
+    method: 'POST',
+    headers: {
+      'apikey': cfg.publishableKey,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ p_token: token })
+  }).then(function (res) {
+    if (!res.ok) throw new Error(res.status);
+    return res.json();
+  }).then(function (r) {
+    if (!r) return state(t.notFound);
+    if (r.language) setLang(r.language);
+    if (r.revoked) return state(t.revoked);
+    render(r);
+  }).catch(function () {
+    state(t.loadError);
+  });
+})();
+</script>
+</body>
+</html>
